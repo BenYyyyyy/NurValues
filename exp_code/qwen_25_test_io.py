@@ -157,7 +157,7 @@ if __name__ == '__main__':
             if level == 'easy':
                 content = IO_prompt_easy(row['text_CN'], nursing_value)
             elif level == 'hard':
-                content = IO_prompt_hard(row['complicated_text'], nursing_value)
+                content = IO_prompt_hard(row['complicated_text_CN'], nursing_value)
             
             messages = [{"role": "user", "content": content}]
             inputs = tokenizer(tokenizer.apply_chat_template(messages, tokenize=False,add_generation_prompt=True

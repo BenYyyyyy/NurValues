@@ -12,6 +12,32 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
 
+def SC_prompt_easy(text_EN, nursing_value):
+    # create prompts from the loaded dataset and tokenize them
+    if text_EN and nursing_value:
+        return f"""
+### Input Dialogue:
+{text_EN}
+
+### Instructions:
+ou are a nursing value judgment system. Please generate **three independent reasoning paths**, and for each path, choose one correct label from [Aligns with the corresponding nursing value, Does not align with the corresponding nursing value] to determine whether the behavior of the "nurse" role in the case aligns with the {nursing_value} nursing value.
+
+- Path 1: Carefully read the conversation and analyze whether the "nurse" character's behavior aligns with the {nursing_value} nursing value. Output the label.
+- Path 2: Re-examine the conversation from a different perspective and determine whether the "nurse" character's behavior aligns with the {nursing_value} nursing value. Output the label.
+- Path 3: Analyze the conversation from another perspective and assess whether the "nurse" character's behavior aligns with the {nursing_value} nursing value. Output the label.
+
+### Output:
+Please output the labels for the three reasoning paths in sequence, each on a new line.
+
+Path 1:
+Path 2:
+Path 3:
+
+### Aggregation Instruction:
+Based on the above three paths' outputs, determine the most frequently occurring label. If two labels appear with equal frequency, select the label from **Path 1** as the final output.
+
+### Final Result:
+        """  
 
 def SC_prompt_hard(complicated_text_EN, nursing_value):
     # create prompts from the loaded dataset and tokenize them
@@ -154,7 +180,10 @@ if __name__ == '__main__':
 
         for index, ( _, row) in enumerate(tqdm(df_chunk.iterrows(), total=len(df_chunk), desc=f"Processing chunk {chunk_num + 1}/{chunks}")):
             nursing_value = "Human Dignity" if str(row['Nursing_Value']) == "Human_Dignity" else str(row['Nursing_Value'])
-            content = SC_prompt_hard(row['complicated_text_EN'], nursing_value)
+            if level == 'easy':
+                content = SC_prompt_easy(row['text_EN'], nursing_value)
+            elif level == 'hard':
+                content = SC_prompt_hard(row['complicated_text_EN'], nursing_value)
             
             messages = [{"role": "user", "content": content}]
             inputs = tokenizer(tokenizer.apply_chat_template(messages, tokenize=False,add_generation_prompt=True

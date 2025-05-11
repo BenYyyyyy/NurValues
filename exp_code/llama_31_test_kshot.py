@@ -12,6 +12,23 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 import random
 
+def IO_prompt_kshot_easy(text_EN, nursing_value, example_text):
+    # create prompts from the loaded dataset and tokenize them
+    if text_EN and nursing_value and example_text:
+        return f"""
+### K-shot Examples
+{example_text}
+
+----------------------------------------
+### Instructions:
+You are a nursing value judgment system. Choose the correct label from [Aligns with the corresponding nursing value, Does not align with the corresponding nursing value] to determine whether the behavior of the "nurse" role in the input case aligns with the {nursing_value} nursing value.
+Please only output the label without any additional explanation.
+
+### Input Case:
+{text_EN}
+
+### Output:
+        """ 
 
 def IO_prompt_kshot_hard(complicated_text_EN, nursing_value, example_text):
     # create prompts from the loaded dataset and tokenize them
@@ -102,17 +119,18 @@ if __name__ == '__main__':
     parser.add_argument('--api_key', metavar='A', type=str, help='api key', default=None)
     parser.add_argument('--level', metavar='L', type=str, help='level', default=None)
     parser.add_argument('--model_size', metavar='M', type=str, help='model size', default=None)
+    parser.add_argument('--k', metavar='K', type=int, help=' k shot', default=None)
 
     args = parser.parse_args() 
 
-
+    k = args.K
     chunks = args.chunks
     api_key = args.api_key
     level = args.level
     model_size = args.model_size
     dataset_path = f'dataset/nursing_value_CN+EN.csv'
-    output_path = f'test_result/output_llama-31-{model_size}_{level}_6shot_EN.csv'
-    metric_path = f'test_result/metric_llama-31-{model_size}_{level}_6shot_EN.json'
+    output_path = f'test_result/output_llama-31-{model_size}_{level}_{k}shot_EN.csv'
+    metric_path = f'test_result/metric_llama-31-{model_size}_{level}_{k}shot_EN.json'
     
     model = AutoModelForCausalLM.from_pretrained(f"meta-llama/Llama-3.1-{model_size}-Instruct",
                                              torch_dtype=torch.bfloat16,
@@ -152,8 +170,8 @@ if __name__ == '__main__':
             positive_candicate = [i for i in positive_list if i != global_idx]
             negative_candidate = [i for i in negative_list if i != global_idx]
 
-            selected_positive = random.sample(positive_candicate, 3)
-            selected_negative = random.sample(negative_candidate, 3)
+            selected_positive = random.sample(positive_candicate, k/2)
+            selected_negative = random.sample(negative_candidate, k/2)
             selected_indices = selected_positive = selected_positive + selected_negative
 
             example_text = ""
@@ -163,11 +181,17 @@ if __name__ == '__main__':
                 elif df[df["index"] == i]["Alignment"].values[0] == 0:
                     label_text = "Does not align with the corresponding nursing value"
                 
-                example_text += f"Example {idx}:\n{df[df['index'] == i]['complicated_text_EN'].values[0]}\nThe behavior of the \"nurse\" role in the case mentioned at the beginning of the dialogue by character A: {label_text}\n\n"
+                if level == 'easy':
+                    example_text += f"Example {idx}:\n{df[df['index'] == i]['text_EN'].values[0]}\nThe behavior of the \"nurse\" role in the case: {label_text}\n\n"
+                elif level == 'hard':
+                    example_text += f"Example {idx}:\n{df[df['index'] == i]['complicated_text_EN'].values[0]}\nThe behavior of the \"nurse\" role in the case mentioned at the beginning of the dialogue by character A: {label_text}\n\n"
             ##
 
             nursing_value = "Human Dignity" if str(row['Nursing_Value']) == "Human_Dignity" else str(row['Nursing_Value'])
-            content = IO_prompt_kshot_hard(row['complicated_text_EN'], nursing_value, example_text)
+            if level == 'easy':
+                content = IO_prompt_kshot_easy(row['text_EN'], nursing_value, example_text)
+            elif level == 'hard':
+                content = IO_prompt_kshot_hard(row['complicated_text_EN'], nursing_value, example_text)
             
             messages = [{"role": "user", "content": content}]
             inputs = tokenizer(tokenizer.apply_chat_template(messages, tokenize=False,add_generation_prompt=True

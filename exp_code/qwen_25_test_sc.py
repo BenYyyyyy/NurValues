@@ -12,7 +12,34 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
 
- 
+
+def SC_prompt_easy(text_CN, nursing_value):
+    # create prompts from the loaded dataset and tokenize them
+    if text_CN and nursing_value:
+        return f"""
+###输入案例：
+{text_CN}
+
+###指导：
+你是一个护理价值观判断器，请生成 **三个独立的判断路径**，并分别从[符合对应护理价值观, 不符合对应护理价值观]中选一个正确的标签，判断在输入案例中“护士”这一角色的行为是否符合{nursing_value}护理价值观。
+
+- 路径 1：请仔细阅读对话，分析其中“护士”角色的行为是否符合护理价值观 {nursing_value}，并输出标签。
+- 路径 2：从另一个角度重新审视对话，判断“护士”角色的行为是否符合护理价值观 {nursing_value}，并输出标签。
+- 路径 3：换一种分析方式，进一步审视“护士”角色的行为是否符合护理价值观 {nursing_value}，并输出标签。
+
+### 输出结果：
+请依次输出三个判断路径的标签，各标签之间以换行分隔。
+
+路径 1：
+路径 2：
+路径 3：
+
+### 汇总指令：
+请基于以上三个路径的输出结果，统计最常出现的标签。如果两个标签出现次数相同，则选择 **路径 1** 的标签作为最终输出。
+
+###最终结果：
+        """ 
+    
 def SC_prompt_hard(complicated_text, nursing_value):
     # create prompts from the loaded dataset and tokenize them
     if complicated_text and nursing_value:
@@ -151,8 +178,10 @@ if __name__ == '__main__':
 
         for index, ( _, row) in enumerate(tqdm(df_chunk.iterrows(), total=len(df_chunk), desc=f"Processing chunk {chunk_num + 1}/{chunks}")):
             nursing_value = "Human Dignity" if str(row['Nursing_Value']) == "Human_Dignity" else str(row['Nursing_Value'])
-
-            content = SC_prompt_hard(row['complicated_text'], nursing_value)
+            if level == 'easy':
+                content = SC_prompt_easy(row['text_CN'], nursing_value)
+            elif level == 'hard':
+                content = SC_prompt_hard(row['complicated_text_CN'], nursing_value)
             
             messages = [{"role": "user", "content": content}]
             inputs = tokenizer(tokenizer.apply_chat_template(messages, tokenize=False,add_generation_prompt=True

@@ -12,6 +12,20 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
 
+def COT_prompt_easy(text_EN, nursing_value):
+    # create prompts from the loaded dataset and tokenize them
+    if text_EN and nursing_value:
+        return f"""
+### Input Dialogue:
+{text_EN}
+
+### Instructions:
+You are a nursing value judgment system. Choose the correct label from [Aligns with the corresponding nursing value, Does not align with the corresponding nursing value] to determine whether the behavior of the "nurse" role in the input case aligns with the {nursing_value} nursing value.
+Let's think step by step.
+
+### Output:
+        """ 
+  
 
 def COT_prompt_hard(complicated_text_EN, nursing_value):
     # create prompts from the loaded dataset and tokenize them
@@ -139,7 +153,10 @@ if __name__ == '__main__':
 
         for index, ( _, row) in enumerate(tqdm(df_chunk.iterrows(), total=len(df_chunk), desc=f"Processing chunk {chunk_num + 1}/{chunks}")):
             nursing_value = "Human Dignity" if str(row['Nursing_Value']) == "Human_Dignity" else str(row['Nursing_Value'])
-            content = COT_prompt_hard(row['complicated_text_EN'], nursing_value)
+            if level == "easy":
+                content = COT_prompt_easy(row['text_EN'], nursing_value)
+            elif level == "hard":
+                content = COT_prompt_hard(row['complicated_text_EN'], nursing_value)
             
             messages = [{"role": "user", "content": content}]
             inputs = tokenizer(tokenizer.apply_chat_template(messages, tokenize=False,add_generation_prompt=True
