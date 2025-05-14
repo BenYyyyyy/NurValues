@@ -34,5 +34,16 @@ df = pd.read_csv("nursing_value_CN+EN.csv")
 ```
 
 # Article and Citation
-We will post the arXiv link later.
 
+[_**NurValues: Real-World Nursing Values Evaluation for Large Language Models in Clinical Context**_](https://arxiv.org/abs/2505.08734)
+
+```
+@misc{yao2025nurvaluesrealworldnursingvalues,
+      title={NurValues: Real-World Nursing Values Evaluation for Large Language Models in Clinical Context}, 
+      author={Ben Yao and Qiuchi Li and Yazhou Zhang and Siyu Yang and Bohan Zhang and Prayag Tiwari and Jing Qin},
+      year={2025},
+      eprint={2505.08734},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2505.08734}, 
+}
